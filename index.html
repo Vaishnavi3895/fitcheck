@@ -680,7 +680,7 @@ function renderScore(d) {
 }
 
 function renderResume(d) {
-  const lines = [d.name||'', d.contact||'','','PROFESSIONAL SUMMARY\n'+(d.summary||'),''),
+  const lines = [d.name||'', d.contact||'', '', 'PROFESSIONAL SUMMARY\n'+(d.summary||''),
     'EXPERIENCE',...(d.experience||[]).flatMap(j=>[`${j.title}  |  ${j.company}  |  ${j.dates}`,...(j.bullets||[]).map(b=>'  • '+b),'']),
     'EDUCATION',...(d.education||[]).map(e=>`${e.degree}  —  ${e.school},  ${e.year}`),'',
     'SKILLS\n'+(d.skills||[]).join('  ·  ')].join('\n');
