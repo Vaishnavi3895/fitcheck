@@ -262,6 +262,28 @@
   .btn-teal-sm:hover { background: var(--accent-dark); }
   .divider { height: 1px; background: var(--border); margin: 16px 0; }
   .error-msg { color: var(--red-text); font-size: 13px; margin-top: 6px; }
+  .kanban-col { display: flex; flex-direction: column; gap: 0; }
+  .kanban-header { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid; margin-bottom: 10px; text-align: center; }
+  .kanban-cards { display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+  .kanban-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; }
+  .kanban-card:hover { border-color: var(--accent); }
+  .kanban-card strong { font-size: 13px; font-weight: 600; color: var(--text); display: block; margin-bottom: 2px; }
+  .kanban-card span { font-size: 12px; color: var(--muted); display: block; }
+  .kanban-card .card-date { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .kanban-card .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .kanban-card .card-actions button { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+  .kanban-card .card-actions button:hover { border-color: var(--accent); color: var(--accent); }
+  .resource-tip { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text); line-height: 1.6; }
+  .resource-num { background: var(--accent-light); color: var(--accent); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .job-board-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 14px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); text-decoration: none; transition: all 0.15s; gap: 2px; }
+  .job-board-card:hover { border-color: var(--accent); background: var(--accent-light); }
+  .job-board-card strong { font-size: 13px; font-weight: 600; color: var(--text); }
+  .job-board-card span { font-size: 11px; color: var(--muted); }
+  .saved-run-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .saved-run-card .run-info strong { font-size: 13.5px; font-weight: 600; color: var(--text); display: block; }
+  .saved-run-card .run-info span { font-size: 12px; color: var(--muted); }
+  .saved-run-card .run-score { font-size: 22px; font-weight: 800; color: var(--accent); min-width: 48px; text-align: center; }
+  .saved-run-card .run-actions { display: flex; gap: 8px; }
 </style>
 </head>
 <body>
@@ -276,15 +298,15 @@
     </div>
   </div>
   <nav class="sidebar-nav">
-    <a class="nav-item active" href="#">
+    <a class="nav-item active" id="nav-tailor" href="#" onclick="showView('tailor'); return false;">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
       Resume Tailoring
     </a>
-    <a class="nav-item" href="#" onclick="return false;" style="opacity:0.5; cursor:default;">
+    <a class="nav-item" id="nav-apps" href="#" onclick="showView('apps'); return false;">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       My Applications
     </a>
-    <a class="nav-item" href="#" onclick="return false;" style="opacity:0.5; cursor:default;">
+    <a class="nav-item" id="nav-resources" href="#" onclick="showView('resources'); return false;">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
       Resources
     </a>
@@ -357,6 +379,7 @@
         Run FitCheck
       </button>
       <button class="btn-outline" id="clearBtn" onclick="clearAll()">Clear</button>
+      <button class="btn-outline" id="saveBtn" onclick="saveRunToApplications()" style="display:none;">⭐ Save to Applications</button>
       <span class="status-text" id="statusMsg"></span>
     </div>
     <div class="error-msg" id="errMsg"></div>
@@ -443,6 +466,200 @@
     </div>
     <div style="height:40px;"></div>
   </div>
+
+  <!-- MY APPLICATIONS VIEW -->
+  <div id="view-apps" style="display:none; padding:28px 32px; flex:1; max-width:1100px;">
+    <div class="hero" style="margin-bottom:24px;">
+      <div class="hero-text">
+        <h2>My Applications ✦</h2>
+        <p>Track every job you've applied to. Add new roles, update their status, and save FitCheck runs directly to each card.</p>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <div class="section-head" style="margin:0;">
+        <h3>Job tracker</h3>
+        <p>Drag cards between columns as your applications progress.</p>
+      </div>
+      <button class="btn-run" onclick="openAddJob()" style="padding:9px 18px; font-size:13px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        Add job
+      </button>
+    </div>
+
+    <!-- KANBAN -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:32px;">
+      <div class="kanban-col" id="col-applied">
+        <div class="kanban-header" style="background:#EEF2F8; color:#2C4A6A; border-color:#C4D4E4;">Applied</div>
+        <div class="kanban-cards" id="cards-applied"></div>
+      </div>
+      <div class="kanban-col" id="col-interviewing">
+        <div class="kanban-header" style="background:#FBF6E9; color:#7A5E18; border-color:#F0E2B8;">Interviewing</div>
+        <div class="kanban-cards" id="cards-interviewing"></div>
+      </div>
+      <div class="kanban-col" id="col-offer">
+        <div class="kanban-header" style="background:#EEF5F0; color:#2C5238; border-color:#C0DACC;">Offer</div>
+        <div class="kanban-cards" id="cards-offer"></div>
+      </div>
+      <div class="kanban-col" id="col-rejected">
+        <div class="kanban-header" style="background:#FBF0F0; color:#6A2828; border-color:#ECC8C0;">Rejected</div>
+        <div class="kanban-cards" id="cards-rejected"></div>
+      </div>
+    </div>
+
+    <!-- SAVED FITCHECK RUNS -->
+    <div class="section-head">
+      <h3>Saved FitCheck runs</h3>
+      <p>Every time you run FitCheck and save it, it appears here.</p>
+    </div>
+    <div id="saved-runs-list" style="display:flex; flex-direction:column; gap:12px; margin-top:4px;">
+      <p style="font-size:13px; color:var(--muted); padding:20px 0;">No saved runs yet — run FitCheck and click "Save to Applications".</p>
+    </div>
+  </div>
+
+  <!-- RESOURCES VIEW -->
+  <div id="view-resources" style="display:none; padding:28px 32px; flex:1; max-width:1100px;">
+    <div class="hero" style="margin-bottom:24px;">
+      <div class="hero-text">
+        <h2>Resources ✦</h2>
+        <p>Everything you need to run a sharp job search — from writing to negotiating to landing the offer.</p>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+      <!-- Resume writing -->
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <div class="output-icon icon-teal" style="font-size:18px;">📝</div>
+          <div><strong style="font-size:15px; color:var(--text);">Resume writing tips</strong></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="resource-tip"><span class="resource-num">1</span><span>Lead every bullet with a strong action verb — <em>Led, Built, Reduced, Grew</em> — not <em>Responsible for</em>.</span></div>
+          <div class="resource-tip"><span class="resource-num">2</span><span>Quantify impact wherever possible. "Grew pipeline by 40%" beats "helped grow pipeline".</span></div>
+          <div class="resource-tip"><span class="resource-num">3</span><span>Keep it to one page if under 8 years experience. Two pages maximum, ever.</span></div>
+          <div class="resource-tip"><span class="resource-num">4</span><span>Mirror the exact language from the JD — ATS systems scan for keyword matches.</span></div>
+          <div class="resource-tip"><span class="resource-num">5</span><span>Put your most recent and relevant role first. Recruiters spend 7 seconds on a first scan.</span></div>
+        </div>
+      </div>
+
+      <!-- Interview guides -->
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <div class="output-icon icon-green" style="font-size:18px;">🎯</div>
+          <div><strong style="font-size:15px; color:var(--text);">Interview guides</strong></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="resource-tip"><span class="resource-num">1</span><span><strong>STAR method</strong> — Situation, Task, Action, Result. Use it for every behavioural question.</span></div>
+          <div class="resource-tip"><span class="resource-num">2</span><span>Prepare 3 stories that can flex to answer different questions — a challenge, a win, a failure.</span></div>
+          <div class="resource-tip"><span class="resource-num">3</span><span>Research the company's recent news, product, and competitors before every interview.</span></div>
+          <div class="resource-tip"><span class="resource-num">4</span><span>Always have 2–3 thoughtful questions ready for the interviewer — it shows genuine interest.</span></div>
+          <div class="resource-tip"><span class="resource-num">5</span><span>Send a follow-up thank you note within 24 hours. Most candidates don't — it stands out.</span></div>
+        </div>
+      </div>
+
+      <!-- Salary negotiation -->
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <div class="output-icon icon-amber" style="font-size:18px;">💰</div>
+          <div><strong style="font-size:15px; color:var(--text);">Salary negotiation</strong></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="resource-tip"><span class="resource-num">1</span><span>Never give a number first. Respond with "I'd love to understand the full package before discussing numbers."</span></div>
+          <div class="resource-tip"><span class="resource-num">2</span><span>Research market rates on Glassdoor, Levels.fyi, and LinkedIn Salary before any conversation.</span></div>
+          <div class="resource-tip"><span class="resource-num">3</span><span>Negotiate the whole package — base, bonus, equity, PTO, remote flexibility, learning budget.</span></div>
+          <div class="resource-tip"><span class="resource-num">4</span><span>Ask for 10–20% above your target. You can always come down; you can't go back up.</span></div>
+          <div class="resource-tip"><span class="resource-num">5</span><span>Get the offer in writing before giving notice. Always.</span></div>
+        </div>
+      </div>
+
+      <!-- Job search strategies -->
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <div class="output-icon icon-blue" style="font-size:18px;">🗺️</div>
+          <div><strong style="font-size:15px; color:var(--text);">Job search strategies</strong></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="resource-tip"><span class="resource-num">1</span><span>80% of jobs are filled through referrals. Prioritise warm outreach over cold applications.</span></div>
+          <div class="resource-tip"><span class="resource-num">2</span><span>Apply within 48 hours of a posting going live — response rates drop sharply after that.</span></div>
+          <div class="resource-tip"><span class="resource-num">3</span><span>Set a daily target — 3 quality applications beats 20 spray-and-pray applications every time.</span></div>
+          <div class="resource-tip"><span class="resource-num">4</span><span>Build in public — write about your work on LinkedIn. Inbound is the best kind of pipeline.</span></div>
+          <div class="resource-tip"><span class="resource-num">5</span><span>Track every application in FitCheck's tracker. Patterns in rejections reveal what to fix.</span></div>
+        </div>
+      </div>
+
+      <!-- Job boards — full width -->
+      <div class="card" style="grid-column:1/-1;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div class="output-icon icon-teal" style="font-size:18px;">🔗</div>
+          <div><strong style="font-size:15px; color:var(--text);">Job boards worth your time</strong></div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
+          <a href="https://linkedin.com/jobs" target="_blank" class="job-board-card">
+            <div style="font-size:20px; margin-bottom:6px;">💼</div>
+            <strong>LinkedIn</strong>
+            <span>Best for networking + referrals</span>
+          </a>
+          <a href="https://wellfound.com" target="_blank" class="job-board-card">
+            <div style="font-size:20px; margin-bottom:6px;">🚀</div>
+            <strong>Wellfound</strong>
+            <span>Startups & early-stage roles</span>
+          </a>
+          <a href="https://www.ycombinator.com/jobs" target="_blank" class="job-board-card">
+            <div style="font-size:20px; margin-bottom:6px;">🧡</div>
+            <strong>YC Jobs</strong>
+            <span>Top YC-backed companies</span>
+          </a>
+          <a href="https://glassdoor.com" target="_blank" class="job-board-card">
+            <div style="font-size:20px; margin-bottom:6px;">🔍</div>
+            <strong>Glassdoor</strong>
+            <span>Reviews + salary data</span>
+          </a>
+          <a href="https://naukri.com" target="_blank" class="job-board-card">
+            <div style="font-size:20px; margin-bottom:6px;">🇮🇳</div>
+            <strong>Naukri</strong>
+            <span>India's largest job board</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+    <div style="height:40px;"></div>
+  </div>
+
+  <!-- ADD JOB MODAL -->
+  <div id="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(42,31,40,0.4); z-index:200; align-items:center; justify-content:center;">
+    <div style="background:var(--surface); border-radius:var(--radius); padding:28px; width:440px; max-width:90vw; border:1px solid var(--border);">
+      <h3 style="font-size:16px; font-weight:700; margin-bottom:18px; color:var(--text);">Add a job</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:5px;">Role title *</label>
+          <input id="job-title" type="text" placeholder="e.g. Senior Product Manager" style="width:100%; border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; font-size:13px; font-family:inherit; color:var(--text); background:var(--surface-2); outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:5px;">Company *</label>
+          <input id="job-company" type="text" placeholder="e.g. Notion" style="width:100%; border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; font-size:13px; font-family:inherit; color:var(--text); background:var(--surface-2); outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:5px;">Status</label>
+          <select id="job-status" style="width:100%; border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; font-size:13px; font-family:inherit; color:var(--text); background:var(--surface-2); outline:none;">
+            <option value="applied">Applied</option>
+            <option value="interviewing">Interviewing</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:5px;">Notes</label>
+          <textarea id="job-notes" placeholder="Recruiter name, salary range, next steps..." style="width:100%; height:80px; border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; font-size:13px; font-family:inherit; color:var(--text); background:var(--surface-2); outline:none; resize:none;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+        <button class="btn-outline" onclick="closeModal()" style="padding:9px 16px; font-size:13px;">Cancel</button>
+        <button class="btn-run" onclick="saveJob()" style="padding:9px 18px; font-size:13px;">Save job</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -528,6 +745,7 @@ Generate exactly 8 interview questions likely for this role based on the JD. Mix
 
     results = { score: scoreData, resume: resumeData, cover: coverData, prep: prepData };
     setStatus('All done ✓');
+    document.getElementById('saveBtn').style.display = '';
 
   } catch(e) {
     setErr('Something went wrong: ' + e.message);
@@ -648,6 +866,7 @@ function clearAll() {
   document.getElementById('jd').value = '';
   document.getElementById('resume').value = '';
   setStatus(''); setErr('');
+  document.getElementById('saveBtn').style.display = 'none';
   ['card-score','card-resume','card-cover','card-prep'].forEach(id => {
     document.getElementById(id).classList.remove('visible','loading');
   });
@@ -694,6 +913,120 @@ function downloadPDF() {
   sf(11,'bold','#111'); doc.text('Skills', ml, y); y += 14;
   wr((d.skills||[]).join('  ·  '), ml, cw, 10,'normal','#333');
   doc.save('fitcheck_resume.pdf');
+// ── VIEW SWITCHING ──────────────────────────────────────────
+const topbarTitles = {
+  tailor: { title: 'Resume Tailoring', sub: 'Paste your JD and resume · Get 4 AI-powered outputs in one go' },
+  apps: { title: 'My Applications', sub: 'Track your job search · Applied, Interviewing, Offer, Rejected' },
+  resources: { title: 'Resources', sub: 'Tips, guides, and tools to sharpen your job search' }
+};
+
+function showView(name) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-' + name).classList.add('active');
+  const content = document.querySelector('.content');
+  if (content) content.style.display = name === 'tailor' ? '' : 'none';
+  document.getElementById('view-apps').style.display = name === 'apps' ? 'block' : 'none';
+  document.getElementById('view-resources').style.display = name === 'resources' ? 'block' : 'none';
+  const t = topbarTitles[name];
+  document.querySelector('.topbar-title strong').textContent = t.title;
+  document.querySelector('.topbar-title span').textContent = t.sub;
+  if (name === 'apps') renderAppsView();
+}
+
+// ── JOB TRACKER ─────────────────────────────────────────────
+function getJobs() { try { return JSON.parse(localStorage.getItem('fitcheck_jobs') || '[]'); } catch(e) { return []; } }
+function saveJobs(jobs) { localStorage.setItem('fitcheck_jobs', JSON.stringify(jobs)); }
+
+function openAddJob() {
+  document.getElementById('job-title').value = '';
+  document.getElementById('job-company').value = '';
+  document.getElementById('job-notes').value = '';
+  document.getElementById('job-status').value = 'applied';
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+function saveJob() {
+  const title = document.getElementById('job-title').value.trim();
+  const company = document.getElementById('job-company').value.trim();
+  if (!title || !company) { alert('Please fill in role title and company.'); return; }
+  const jobs = getJobs();
+  jobs.unshift({
+    id: Date.now(), title, company,
+    status: document.getElementById('job-status').value,
+    notes: document.getElementById('job-notes').value.trim(),
+    date: new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+  });
+  saveJobs(jobs);
+  closeModal();
+  renderAppsView();
+}
+
+function deleteJob(id) { saveJobs(getJobs().filter(j => j.id !== id)); renderAppsView(); }
+
+function moveJob(id, status) {
+  const jobs = getJobs();
+  const j = jobs.find(j => j.id === id);
+  if (j) j.status = status;
+  saveJobs(jobs);
+  renderAppsView();
+}
+
+function renderAppsView() {
+  const jobs = getJobs();
+  const nextStatus = { applied: 'interviewing', interviewing: 'offer', offer: null, rejected: null };
+  const statusLabels = { applied: 'Applied', interviewing: 'Interviewing', offer: 'Offer', rejected: 'Rejected' };
+  ['applied','interviewing','offer','rejected'].forEach(s => {
+    const col = document.getElementById('cards-' + s);
+    if (!col) return;
+    const filtered = jobs.filter(j => j.status === s);
+    if (!filtered.length) { col.innerHTML = `<p style="font-size:12px;color:var(--muted);text-align:center;padding:16px 0;">No jobs here yet</p>`; return; }
+    col.innerHTML = filtered.map(j => `
+      <div class="kanban-card">
+        <strong>${escHtml(j.title)}</strong>
+        <span>${escHtml(j.company)}</span>
+        ${j.notes ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">${escHtml(j.notes.substring(0,60))}${j.notes.length>60?'…':''}</span>` : ''}
+        <div class="card-date">${j.date}</div>
+        <div class="card-actions">
+          ${nextStatus[s] ? `<button onclick="moveJob(${j.id},'${nextStatus[s]}')">→ ${statusLabels[nextStatus[s]]}</button>` : ''}
+          ${s !== 'rejected' ? `<button onclick="moveJob(${j.id},'rejected')">Rejected</button>` : ''}
+          <button onclick="deleteJob(${j.id})" style="color:var(--red-text);">Delete</button>
+        </div>
+      </div>`).join('');
+  });
+  const runs = getSavedRuns();
+  const runsList = document.getElementById('saved-runs-list');
+  if (!runsList) return;
+  if (!runs.length) { runsList.innerHTML = `<p style="font-size:13px;color:var(--muted);padding:20px 0;">No saved runs yet — run FitCheck and click "Save to Applications".</p>`; return; }
+  runsList.innerHTML = runs.map((r,i) => `
+    <div class="saved-run-card">
+      <div class="run-score">${r.score}<span style="font-size:12px;font-weight:400;color:var(--muted);">/100</span></div>
+      <div class="run-info" style="flex:1;">
+        <strong>${escHtml(r.role || 'Untitled role')}</strong>
+        <span>${r.verdict} · Saved ${r.date}</span>
+      </div>
+      <div class="run-actions">
+        <button class="btn-copy" onclick="deleteSavedRun(${i})" style="font-size:12px;padding:6px 12px;">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── SAVED RUNS ───────────────────────────────────────────────
+function getSavedRuns() { try { return JSON.parse(localStorage.getItem('fitcheck_runs') || '[]'); } catch(e) { return []; } }
+function deleteSavedRun(i) {
+  const runs = getSavedRuns(); runs.splice(i,1);
+  localStorage.setItem('fitcheck_runs', JSON.stringify(runs));
+  renderAppsView();
+}
+function saveRunToApplications() {
+  if (!results || !results.score) return;
+  const jdText = document.getElementById('jd').value.trim();
+  const roleMatch = jdText.match(/(?:role|position|title)[:\s]+([^\n,\.]+)/i);
+  const role = roleMatch ? roleMatch[1].trim() : jdText.split('\n')[0].substring(0,60);
+  const runs = getSavedRuns();
+  runs.unshift({ score: results.score.score, verdict: results.score.verdict, role, date: new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) });
+  localStorage.setItem('fitcheck_runs', JSON.stringify(runs));
+  alert('Saved to My Applications!');
 }
 </script>
 </body>
