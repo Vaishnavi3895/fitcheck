@@ -491,40 +491,39 @@ async function runAll() {
 
   ['card-score','card-resume','card-cover','card-prep'].forEach(loadCard);
 
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+
   try {
-    // PARALLEL: score + resume together, then cover + prep
-    setStatus('Analysing keyword match…');
-    const [scoreRaw, resumeRaw] = await Promise.all([
-      callClaude(`You are a resume analyst. Respond ONLY with a JSON object — no markdown, no preamble.
+    // Sequential calls with a small delay between each to avoid rate limits
+    setStatus('Analysing keyword match… (1/4)');
+    const scoreRaw = await callClaude(`You are a resume analyst. Respond ONLY with a JSON object — no markdown, no preamble.
 Schema: { "score": number 0-100, "verdict": "Strong Match"|"Decent Match"|"Weak Match", "summary": "2 sentence plain English verdict", "matched": ["keyword1","keyword2",...], "missing": ["keyword1","keyword2",...] }
-Be honest. matched = important JD keywords found in resume. missing = important JD keywords absent from resume.`, `JD:\n${jd}\n\nRESUME:\n${resume}`),
-
-      callClaude(`You are a professional resume writer. Respond ONLY with a JSON object — no markdown, no preamble.
-Schema: { "name":"", "contact":"", "summary":"", "experience":[{"title":"","company":"","dates":"","bullets":[]}], "education":[{"degree":"","school":"","year":""}], "skills":[] }
-Rules: Keep all facts (names, dates, companies). Rewrite summary to target this role. Reorder & sharpen bullets to surface most relevant achievements. Weave in JD keywords naturally. Action verbs, impact-focused.`, `JD:\n${jd}\n\nRESUME:\n${resume}`)
-    ]);
-
+Be honest. matched = important JD keywords found in resume. missing = important JD keywords absent from resume.`, `JD:\n${jd}\n\nRESUME:\n${resume}`);
     const scoreData = JSON.parse(scoreRaw);
-    const resumeData = JSON.parse(resumeRaw);
-
     renderScore(scoreData);
+    await delay(1500);
+
+    setStatus('Tailoring your resume… (2/4)');
+    const resumeRaw = await callClaude(`You are a professional resume writer. Respond ONLY with a JSON object — no markdown, no preamble.
+Schema: { "name":"", "contact":"", "summary":"", "experience":[{"title":"","company":"","dates":"","bullets":[]}], "education":[{"degree":"","school":"","year":""}], "skills":[] }
+Rules: Keep all facts (names, dates, companies). Rewrite summary to target this role. Reorder & sharpen bullets to surface most relevant achievements. Weave in JD keywords naturally. Action verbs, impact-focused.`, `JD:\n${jd}\n\nRESUME:\n${resume}`);
+    const resumeData = JSON.parse(resumeRaw);
     renderResume(resumeData);
+    await delay(1500);
 
-    setStatus('Drafting cover letter & interview prep…');
-    const [coverRaw, prepRaw] = await Promise.all([
-      callClaude(`You are a professional cover letter writer. Respond ONLY with a JSON object — no markdown, no preamble.
+    setStatus('Writing cover letter… (3/4)');
+    const coverRaw = await callClaude(`You are a professional cover letter writer. Respond ONLY with a JSON object — no markdown, no preamble.
 Schema: { "letter": "full cover letter as a single string with \\n for line breaks" }
-Write a compelling, specific cover letter (3 short paragraphs + sign-off). Reference the company and role by name from the JD. Draw on specific experience from the resume. Avoid clichés.`, `JD:\n${jd}\n\nRESUME:\n${resume}`),
-
-      callClaude(`You are an interview coach. Respond ONLY with a JSON object — no markdown, no preamble.
-Schema: { "questions": [{"q":"question text","type":"behavioral"|"technical"|"situational","tip":"2-3 sentence answer guidance using STAR or specific frameworks"}] }
-Generate exactly 8 interview questions likely for this role based on the JD. Mix of behavioral (3), technical (3), situational (2). Tips should be specific to the candidate's background from their resume.`, `JD:\n${jd}\n\nRESUME:\n${resume}`)
-    ]);
-
+Write a compelling, specific cover letter (3 short paragraphs + sign-off). Reference the company and role by name from the JD. Draw on specific experience from the resume. Avoid clichés.`, `JD:\n${jd}\n\nRESUME:\n${resume}`);
     const coverData = JSON.parse(coverRaw);
-    const prepData = JSON.parse(prepRaw);
-
     renderCover(coverData);
+    await delay(1500);
+
+    setStatus('Preparing interview questions… (4/4)');
+    const prepRaw = await callClaude(`You are an interview coach. Respond ONLY with a JSON object — no markdown, no preamble.
+Schema: { "questions": [{"q":"question text","type":"behavioral"|"technical"|"situational","tip":"2-3 sentence answer guidance using STAR or specific frameworks"}] }
+Generate exactly 8 interview questions likely for this role based on the JD. Mix of behavioral (3), technical (3), situational (2). Tips should be specific to the candidate's background from their resume.`, `JD:\n${jd}\n\nRESUME:\n${resume}`);
+    const prepData = JSON.parse(prepRaw);
     renderPrep(prepData);
 
     results = { score: scoreData, resume: resumeData, cover: coverData, prep: prepData };
