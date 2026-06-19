@@ -427,7 +427,7 @@
       <label>Email</label>
       <input id="authEmail" type="email" placeholder="you@email.com">
       <label>Password</label>
-      <input id="authPassword" type="password" placeholder="Min. 6 characters">
+      <input id="authPassword" type="password" placeholder="Min 8 chars, 1 uppercase, 1 number, 1 special char">
       <div class="modal-err" id="authErr"></div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeAuthModal()">Cancel</button>
@@ -544,24 +544,49 @@ async function submitAuth() {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authErr');
-  if (!email || !password) { errEl.textContent = 'Please fill in both fields.'; return; }
-  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) { errEl.textContent = 'Please enter a valid email address.'; return; }
+
+  // Strong password validation
+  if (!password || password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+  if (!/[A-Z]/.test(password)) { errEl.textContent = 'Password must include at least one uppercase letter.'; return; }
+  if (!/[0-9]/.test(password)) { errEl.textContent = 'Password must include at least one number.'; return; }
+  if (!/[^A-Za-z0-9]/.test(password)) { errEl.textContent = 'Password must include at least one special character (e.g. @, !, #).'; return; }
+
   errEl.textContent = '';
   document.getElementById('authSubmitBtn').textContent = 'Please wait…';
   document.getElementById('authSubmitBtn').disabled = true;
 
   try {
     const data = await sbFetch(authMode, { email, password });
-    if (data.error || data.msg) { errEl.textContent = data.error_description || data.msg || data.error || 'Something went wrong.'; return; }
+    if (data.error || data.msg) {
+      errEl.textContent = data.error_description || data.msg || data.error || 'Something went wrong.';
+      return;
+    }
     const user = data.user || data;
     const token = data.access_token;
-    if (!token) { errEl.textContent = authMode === 'signup' ? 'Account created! Please check your email to confirm, then sign in.' : 'Invalid credentials.'; return; }
+
+    if (!token) {
+      // Signup success but email confirmation required
+      errEl.style.color = 'var(--green-text)';
+      errEl.textContent = '✓ Account created! Please check your email to confirm your account, then sign in.';
+      // Switch to signin mode after a moment
+      setTimeout(() => {
+        authMode = 'signin';
+        updateAuthModalUI();
+        errEl.textContent = '';
+        errEl.style.color = '';
+      }, 3000);
+      return;
+    }
+
     currentUser = user;
     authToken = token;
     localStorage.setItem('fc_session', JSON.stringify({ user, token }));
     updateAuthUI();
     closeAuthModal();
-    // hide save prompt, show save bar if results exist
     if (results) {
       document.getElementById('savePrompt').style.display = 'none';
       document.getElementById('saveBar').style.display = '';
