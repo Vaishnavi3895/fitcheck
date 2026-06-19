@@ -241,8 +241,44 @@
         <textarea id="jd" placeholder="Paste the full job posting here — role title, responsibilities, required skills, nice-to-haves, company context..."></textarea>
       </div>
       <div class="card">
-        <div class="card-label"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Your Resume</div>
-        <textarea id="resume" placeholder="Paste your resume as plain text — name, contact info, summary, work experience, education, skills..."></textarea>
+        <div class="card-label">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          Your Resume
+          <span style="margin-left:auto; display:flex; gap:6px;">
+            <button onclick="setResumeMode('upload')" id="btn-upload-mode" style="font-size:11px; padding:3px 8px; border-radius:4px; border:1px solid var(--accent); background:var(--accent); color:white; cursor:pointer; font-family:inherit; font-weight:600;">Upload PDF</button>
+            <button onclick="setResumeMode('paste')" id="btn-paste-mode" style="font-size:11px; padding:3px 8px; border-radius:4px; border:1px solid var(--border-light); background:transparent; color:var(--muted); cursor:pointer; font-family:inherit; font-weight:600;">Paste text</button>
+          </span>
+        </div>
+
+        <!-- PDF UPLOAD MODE -->
+        <div id="resume-upload-mode">
+          <div id="drop-zone" onclick="document.getElementById('pdf-input').click()"
+            style="border:2px dashed var(--border-light); border-radius:var(--radius-sm); padding:32px 20px; text-align:center; cursor:pointer; transition:all 0.15s; background:var(--surface-2);"
+            ondragover="event.preventDefault(); this.style.borderColor='var(--accent)'; this.style.background='var(--accent-light)';"
+            ondragleave="this.style.borderColor='var(--border-light)'; this.style.background='var(--surface-2)';"
+            ondrop="handleDrop(event)">
+            <div style="font-size:28px; margin-bottom:8px;">📄</div>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:4px;">Drop your resume PDF here</div>
+            <div style="font-size:12px; color:var(--muted);">or click to browse · Max 5MB</div>
+            <input type="file" id="pdf-input" accept=".pdf" style="display:none;" onchange="handlePdfUpload(this.files[0])">
+          </div>
+          <div id="pdf-status" style="margin-top:10px; font-size:13px; color:var(--muted); min-height:20px;"></div>
+          <div id="pdf-preview" style="display:none; margin-top:8px;">
+            <div style="display:flex; align-items:center; gap:8px; background:var(--green-bg); border:1px solid #C0DACC; border-radius:var(--radius-sm); padding:10px 14px;">
+              <span style="font-size:16px;">✅</span>
+              <div style="flex:1;">
+                <strong style="font-size:13px; color:var(--green-text); display:block;" id="pdf-name"></strong>
+                <span style="font-size:11px; color:var(--muted);" id="pdf-chars"></span>
+              </div>
+              <button onclick="clearPdf()" style="font-size:11px; color:var(--red-text); background:none; border:none; cursor:pointer; font-family:inherit;">✕ Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASTE MODE -->
+        <div id="resume-paste-mode" style="display:none;">
+          <textarea id="resume" placeholder="Paste your resume as plain text — name, contact info, summary, work experience, education, skills..."></textarea>
+        </div>
       </div>
     </div>
     <div class="run-bar">
@@ -595,9 +631,9 @@ async function callAI(systemPrompt, userMsg) {
 async function runAll() {
   if (busy) return;
   const jd = document.getElementById('jd').value.trim();
-  const resume = document.getElementById('resume').value.trim();
+  const resume = getResumeText();
   setErr('');
-  if (!jd || !resume) { setErr('Please fill in both fields.'); return; }
+  if (!jd || !resume) { setErr('Please fill in the job description and upload or paste your resume.'); return; }
   busy = true;
   document.getElementById('runBtn').disabled = true;
   document.getElementById('runBtn').innerHTML = '<span class="spinner"></span> Running…';
@@ -715,6 +751,7 @@ function renderPrep(d) {
 function clearAll() {
   document.getElementById('jd').value = '';
   document.getElementById('resume').value = '';
+  clearPdf();
   setStatus(''); setErr('');
   document.getElementById('savePrompt').style.display = 'none';
   document.getElementById('saveBar').style.display = 'none';
@@ -848,6 +885,71 @@ async function renderApps() {
       <div class="run-info"><strong>${escHtml(r.role||'Untitled')}</strong><span>${r.verdict} · ${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span></div>
       <button class="btn-ghost" onclick="deleteRun(${r.id})" style="font-size:12px;padding:6px 12px;">Delete</button>
     </div>`).join('');
+// ── PDF UPLOAD ────────────────────────────────────────────────
+let resumeMode = 'upload';
+let extractedResumeText = '';
+
+function setResumeMode(mode) {
+  resumeMode = mode;
+  document.getElementById('resume-upload-mode').style.display = mode === 'upload' ? 'block' : 'none';
+  document.getElementById('resume-paste-mode').style.display = mode === 'paste' ? 'block' : 'none';
+  const uploadBtn = document.getElementById('btn-upload-mode');
+  const pasteBtn = document.getElementById('btn-paste-mode');
+  uploadBtn.style.background = mode === 'upload' ? 'var(--accent)' : 'transparent';
+  uploadBtn.style.color = mode === 'upload' ? 'white' : 'var(--muted)';
+  uploadBtn.style.borderColor = mode === 'upload' ? 'var(--accent)' : 'var(--border-light)';
+  pasteBtn.style.background = mode === 'paste' ? 'var(--accent)' : 'transparent';
+  pasteBtn.style.color = mode === 'paste' ? 'white' : 'var(--muted)';
+  pasteBtn.style.borderColor = mode === 'paste' ? 'var(--accent)' : 'var(--border-light)';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor = 'var(--border-light)';
+  document.getElementById('drop-zone').style.background = 'var(--surface-2)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') handlePdfUpload(file);
+  else document.getElementById('pdf-status').textContent = 'Please upload a PDF file.';
+}
+
+async function handlePdfUpload(file) {
+  if (!file) return;
+  if (file.type !== 'application/pdf') { document.getElementById('pdf-status').textContent = 'Please upload a PDF file.'; return; }
+  if (file.size > 5 * 1024 * 1024) { document.getElementById('pdf-status').textContent = 'File too large. Max 5MB.'; return; }
+
+  document.getElementById('pdf-status').textContent = '⏳ Extracting text from PDF…';
+  document.getElementById('pdf-preview').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('resume', file);
+
+  try {
+    const resp = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      document.getElementById('pdf-status').textContent = '❌ ' + (data.error || 'Failed to parse PDF');
+      return;
+    }
+    extractedResumeText = data.text;
+    document.getElementById('pdf-status').textContent = '';
+    document.getElementById('pdf-preview').style.display = 'block';
+    document.getElementById('pdf-name').textContent = file.name;
+    document.getElementById('pdf-chars').textContent = data.text.length + ' characters extracted successfully';
+  } catch(e) {
+    document.getElementById('pdf-status').textContent = '❌ Upload failed. Please try again or paste your resume as text.';
+  }
+}
+
+function clearPdf() {
+  extractedResumeText = '';
+  document.getElementById('pdf-input').value = '';
+  document.getElementById('pdf-preview').style.display = 'none';
+  document.getElementById('pdf-status').textContent = '';
+}
+
+function getResumeText() {
+  if (resumeMode === 'upload') return extractedResumeText;
+  return document.getElementById('resume').value.trim();
 }
 </script>
 </body>
