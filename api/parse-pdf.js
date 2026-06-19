@@ -18,58 +18,11 @@ export default async function handler(req, res) {
     if (!pdfBase64) return res.status(400).json({ error: 'No PDF data received' });
 
     const buffer = Buffer.from(pdfBase64, 'base64');
-
-    // Extract text from PDF by parsing raw content streams
-    const content = buffer.toString('latin1');
-    
-    // Extract text between BT (Begin Text) and ET (End Text) markers
-    const textChunks = [];
-    const btEtRegex = /BT[\s\S]*?ET/g;
-    const matches = content.match(btEtRegex) || [];
-    
-    for (const block of matches) {
-      // Match Tj and TJ operators which contain actual text
-      const tjMatches = block.match(/\(([^)]*)\)\s*Tj/g) || [];
-      const tjArrayMatches = block.match(/\[([^\]]*)\]\s*TJ/g) || [];
-      
-      for (const m of tjMatches) {
-        const text = m.match(/\(([^)]*)\)/)?.[1] || '';
-        if (text.trim()) textChunks.push(text);
-      }
-      for (const m of tjArrayMatches) {
-        const parts = m.match(/\(([^)]*)\)/g) || [];
-        for (const p of parts) {
-          const text = p.slice(1, -1);
-          if (text.trim()) textChunks.push(text);
-        }
-      }
-    }
-
-    let text = textChunks.join(' ')
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '')
-      .replace(/\\t/g, ' ')
-      .replace(/\\\(/g, '(')
-      .replace(/\\\)/g, ')')
-      .replace(/\\\\/g, '\\')
-      .replace(/ {3,}/g, '  ')
-      .trim();
-
-    // If raw extraction didn't work well, try a broader approach
-    if (text.length < 100) {
-      const streamRegex = /stream([\s\S]*?)endstream/g;
-      const streams = [];
-      let match;
-      while ((match = streamRegex.exec(content)) !== null) {
-        const s = match[1].replace(/[^\x20-\x7E\n]/g, ' ').trim();
-        if (s.length > 50) streams.push(s);
-      }
-      text = streams.join('\n').replace(/ {3,}/g, '  ').trim();
-    }
+    const text = extractTextFromPDF(buffer);
 
     if (!text || text.length < 50) {
-      return res.status(400).json({ 
-        error: 'Could not extract text from this PDF. It may be scanned or image-based. Please paste your resume as text instead.' 
+      return res.status(400).json({
+        error: 'Could not extract text from this PDF. It may be a scanned image. Please paste your resume as text instead.'
       });
     }
 
@@ -78,4 +31,57 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: 'Failed to parse PDF: ' + err.message });
   }
+}
+
+function extractTextFromPDF(buffer) {
+  const content = buffer.toString('binary');
+  const results = [];
+
+  // Method 1: Extract from BT/ET text blocks
+  const btBlocks = content.match(/BT[\s\S]*?ET/g) || [];
+  for (const block of btBlocks) {
+    // Tj operator: (text) Tj
+    const tjMatches = block.match(/\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*Tj/g) || [];
+    for (const m of tjMatches) {
+      const inner = m.match(/\(([\s\S]*)\)\s*Tj$/);
+      if (inner) results.push(decodePDFString(inner[1]));
+    }
+    // TJ operator: [(text) -num (text)] TJ
+    const tjArrays = block.match(/\[[\s\S]*?\]\s*TJ/g) || [];
+    for (const arr of tjArrays) {
+      const parts = arr.match(/\(([^)\\]*(?:\\.[^)\\]*)*)\)/g) || [];
+      for (const p of parts) {
+        results.push(decodePDFString(p.slice(1, -1)));
+      }
+    }
+  }
+
+  let text = results.join(' ').trim();
+
+  // Method 2: Fallback — look for readable ASCII runs if method 1 yields little
+  if (text.length < 100) {
+    const readable = content
+      .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+      .replace(/\s{3,}/g, '\n')
+      .trim();
+    // Only use runs of 4+ word characters
+    const words = readable.match(/[a-zA-Z]{2,}[\s\S]{0,200}/g) || [];
+    text = words.join(' ').substring(0, 15000);
+  }
+
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // fix merged words like "ExperienceEducation"
+    .trim();
+}
+
+function decodePDFString(s) {
+  return s
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\t/g, '\t')
+    .replace(/\\\(/g, '(')
+    .replace(/\\\)/g, ')')
+    .replace(/\\\\/g, '\\')
+    .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
 }
