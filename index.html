@@ -920,12 +920,22 @@ async function handlePdfUpload(file) {
   document.getElementById('pdf-status').textContent = '⏳ Extracting text from PDF…';
   document.getElementById('pdf-preview').style.display = 'none';
 
-  const formData = new FormData();
-  formData.append('resume', file);
-
   try {
-    const resp = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+    // Read file as base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const resp = await fetch('/api/parse-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfBase64: base64 })
+    });
     const data = await resp.json();
+
     if (!resp.ok || data.error) {
       document.getElementById('pdf-status').textContent = '❌ ' + (data.error || 'Failed to parse PDF');
       return;
@@ -936,7 +946,7 @@ async function handlePdfUpload(file) {
     document.getElementById('pdf-name').textContent = file.name;
     document.getElementById('pdf-chars').textContent = data.text.length + ' characters extracted successfully';
   } catch(e) {
-    document.getElementById('pdf-status').textContent = '❌ Upload failed. Please try again or paste your resume as text.';
+    document.getElementById('pdf-status').textContent = '❌ Upload failed. Please paste your resume as text instead.';
   }
 }
 
