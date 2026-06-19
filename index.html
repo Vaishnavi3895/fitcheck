@@ -615,6 +615,32 @@ function loadCard(id)   { const el = document.getElementById(id); el.classList.a
 function escHtml(s)     { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
+// ── INPUT SANITISATION (prompt injection defence) ────────────
+function sanitiseInput(text) {
+  if (!text) return '';
+  // Strip common prompt injection patterns
+  const patterns = [
+    /ignore\s+(all\s+)?(previous|prior|above|the)\s+(instructions?|prompts?|context|rules?)/gi,
+    /forget\s+(all\s+)?(previous|prior|above|the)\s+(instructions?|prompts?|context|rules?)/gi,
+    /disregard\s+(all\s+)?(previous|prior|above|the)\s+(instructions?|prompts?|context|rules?)/gi,
+    /you\s+are\s+now\s+a?\s+\w+/gi,
+    /act\s+as\s+(a|an)\s+\w+/gi,
+    /pretend\s+(you\s+are|to\s+be)\s+/gi,
+    /new\s+instructions?:/gi,
+    /system\s*:/gi,
+    /\[INST\]/gi,
+    /<<SYS>>/gi,
+    /<\|im_start\|>/gi,
+    /###\s*instruction/gi,
+  ];
+  let sanitised = text;
+  for (const pattern of patterns) {
+    sanitised = sanitised.replace(pattern, '[removed]');
+  }
+  // Limit length to prevent context stuffing
+  return sanitised.substring(0, 8000);
+}
+
 // ── AI CALL ───────────────────────────────────────────────────
 async function callAI(systemPrompt, userMsg) {
   const resp = await fetch('/api/chat', {
@@ -630,8 +656,8 @@ async function callAI(systemPrompt, userMsg) {
 // ── RUN ALL ───────────────────────────────────────────────────
 async function runAll() {
   if (busy) return;
-  const jd = document.getElementById('jd').value.trim();
-  const resume = getResumeText();
+  const jd = sanitiseInput(document.getElementById('jd').value.trim());
+  const resume = sanitiseInput(getResumeText());
   setErr('');
   if (!jd || !resume) { setErr('Please fill in the job description and upload or paste your resume.'); return; }
   busy = true;
