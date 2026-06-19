@@ -885,6 +885,7 @@ async function renderApps() {
       <div class="run-info"><strong>${escHtml(r.role||'Untitled')}</strong><span>${r.verdict} · ${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span></div>
       <button class="btn-ghost" onclick="deleteRun(${r.id})" style="font-size:12px;padding:6px 12px;">Delete</button>
     </div>`).join('');
+}
 // ── PDF UPLOAD ────────────────────────────────────────────────
 let resumeMode = 'upload';
 let extractedResumeText = '';
